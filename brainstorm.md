@@ -18,10 +18,10 @@
         4. Randomized network delay
     3. Talk about complexity of each data type
 
-Option 1: implement multiple CRDT's
-Option 2: implement RAFT
-Option 3: implement map reduce
-    - Implement the Basic Thing
-    - handle failed workers
-    - One of us does performance benchmarking
-    - Compare to different databases, stuff like that
+Arguments:
+num_clients
+num_replicas
+num_requests
+crdt_type
+send_reliability
+verbosity?

@@ -1,0 +1,22 @@
+- [ ] Make a framework that we can use
+    - [ ] Add a trait for clients and a trait for replicas
+    - [ ] Do Argument Parsing
+    - [ ] Make a main method that runs all the data types
+    - [ ] Add an ending condition
+- [ ] Implement some sort of correctness checker
+    - [ ] Brainstorm ideas of how that would work
+    - [ ] Maybe based on logs?
+- [ ] Implement CRDT
+    - [ ] Base implementation to compare to (not crdt)
+    - [ ] G-only set
+    - [ ] PN Set
+    - [ ] Last Write Wins Set
+    - [ ] OR-Set
+    - [ ] Sequence CRDT
+- [ ] Implement Performance Benchmarking
+    - [ ] Try with different number of clients/requests
+    - [ ] Try with send unreliability, see convergence times with/without unreliability
+    - [ ] See how fast it converges
+- [ ] Write report
+    - [ ] Compare complexity of each implementation
+    - [ ] Compare performance of each implementation
