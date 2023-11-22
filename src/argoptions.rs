@@ -17,43 +17,42 @@ pub struct ArgOptions {
 
 impl ArgOptions {
     pub fn new() -> ArgOptions {
-
         let matches = command!()
             .arg(
-                arg!(-c [num_clients])
+                arg!(-c[num_clients])
                     .required(false)
                     .value_parser(value_parser!(i32))
-                    .default_value("1")
+                    .default_value("1"),
             )
             .arg(
-                arg!(-r [num_replicas])
+                arg!(-r[num_replicas])
                     .required(false)
                     .value_parser(value_parser!(i32))
-                    .default_value("2")
+                    .default_value("2"),
             )
             .arg(
-                arg!(-n [num_requests])
+                arg!(-n[num_requests])
                     .required(false)
                     .value_parser(value_parser!(i32))
-                    .default_value("5")
+                    .default_value("5"),
             )
             .arg(
-                arg!(-t [crdt_type])
+                arg!(-t[crdt_type])
                     .required(false)
                     .value_parser(value_parser!(i32))
-                    .default_value("0")
+                    .default_value("0"),
             )
             .arg(
-                arg!(-p [send_reliability])
+                arg!(-p[send_reliability])
                     .required(false)
                     .value_parser(value_parser!(f64))
-                    .default_value("1.0")
+                    .default_value("1.0"),
             )
             .arg(
-                arg!(-v [verbosity])
+                arg!(-v[verbosity])
                     .required(false)
                     .value_parser(value_parser!(i32))
-                    .default_value("0")
+                    .default_value("0"),
             )
             .get_matches();
 
@@ -63,11 +62,10 @@ impl ArgOptions {
         let crdt_type: CrdtTypes = match matches.get_one::<i32>("crdt_type").unwrap() {
             0 => CrdtTypes::G_COUNTER,
             1 => CrdtTypes::PN_COUNTER,
-            _ => panic!()
+            _ => panic!(),
         };
         let send_reliability = matches.get_one::<f64>("send_reliability").unwrap().clone();
         let verbosity = matches.get_one::<i32>("verbosity").unwrap().clone();
-
 
         ArgOptions {
             num_clients,
