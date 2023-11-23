@@ -1,7 +1,7 @@
 // TODO add more stuff here
 
 pub trait Runnable {
-    fn run(&self);
+    fn run(&mut self);
 }
 
 pub trait Counter: Runnable {

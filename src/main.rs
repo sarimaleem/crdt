@@ -1,44 +1,87 @@
 mod argoptions;
 mod client;
+mod message;
 mod replica;
 mod traits;
+mod network;
 
+use std::sync::atomic::AtomicBool;
+use std::sync::{mpsc, Arc};
 use std::thread::{self, JoinHandle};
+
+use argoptions::ArgOptions;
+use message::Message;
+use network::Network;
 
 use crate::client::Client;
 use crate::replica::Replica;
 use crate::traits::Runnable;
 
 fn main() {
-    let opts = argoptions::ArgOptions::new();
+    let opts = ArgOptions::new();
     run(opts);
 }
 
-fn create_clients(n_clients: i32) -> Vec<Client> {
-    let mut clients = Vec::new();
+// FIXME this is a work in progress
+fn create_nodes(args: ArgOptions, running: Arc<AtomicBool>) -> Vec<Box<dyn Runnable + Send>> {
 
-    for _ in 0..n_clients {
-        clients.push(Client::new())
+    let mut nodes: Vec<Box<dyn Runnable + Send>> = Vec::new();
+    let mut network = Network::new();
+
+    // create transmitters for replicas
+    let mut replica_receivers = Vec::new();
+    let mut client_receivers = Vec::new();
+
+    // create replica channels
+    for i in 0..args.num_replicas {
+        let (tx, rx) = mpsc::channel::<Message>();
+        replica_receivers.push(rx);
+        let replica_id = format!("replica_{}", i);
+        network.add_sender(replica_id, tx);
     }
 
-    return clients;
-}
-
-fn create_replicas(n_replicas: i32) -> Vec<Replica> {
-    let mut replicas = Vec::new();
-
-    for _ in 0..n_replicas {
-        replicas.push(Replica::new());
+    // create client channels
+    for i in 0..args.num_clients {
+        let (tx, rx) = mpsc::channel::<Message>();
+        client_receivers.push(rx);
+        let client_id = format!("client_{}", i);
+        network.add_sender(client_id, tx);
     }
 
-    return replicas;
+    // create replicas
+    for i in 0..args.num_replicas {
+        let replica = Replica::new(
+            i,
+            replica_receivers.remove(0),
+            network.clone(),
+            running.clone(),
+        );
+        nodes.push(Box::new(replica));
+    }
+
+    // create clients
+    for i in 0..args.num_clients {
+        let assigned_replica = (i % args.num_replicas) as usize;
+        let assigned_replica_id = format!("replica_{}", assigned_replica);
+        let client = Client::new(
+            i,
+            args.num_requests,
+            network.clone(),
+            assigned_replica_id,
+            client_receivers.remove(0),
+            running.clone(),
+        );
+        nodes.push(Box::new(client));
+    }
+
+    return nodes;
 }
 
-fn run_clients(clients: Vec<Client>) -> Vec<JoinHandle<()>> {
+fn run_nodes(nodes: Vec<Box<dyn Runnable + Send>>) -> Vec<JoinHandle<()>> {
     let mut handles = Vec::new();
-    for client in clients {
+    for mut node in nodes {
         let handle = thread::spawn(move || {
-            client.run();
+            node.run();
         });
         handles.push(handle);
     };
@@ -46,30 +89,16 @@ fn run_clients(clients: Vec<Client>) -> Vec<JoinHandle<()>> {
     return handles
 }
 
-fn run_replicas(replicas: Vec<Replica>) -> Vec<JoinHandle<()>> {
-    let mut handles = Vec::new();
-    for replica in replicas {
-        let handle = thread::spawn(move || {
-            replica.run();
-        });
-        handles.push(handle);
-    }
 
-    return handles;
-}
-
+// FIXME this is a work in progress
 fn run(options: argoptions::ArgOptions) {
-    let clients = create_clients(options.num_clients);
-    let replicas = create_replicas(options.num_replicas);
-    let client_handles = run_clients(clients);
-    let replica_handles = run_replicas(replicas);
+    let running = Arc::new(AtomicBool::new(true));
+    let nodes = create_nodes(options, running);
+    let handles = run_nodes(nodes);
 
-    for handle in client_handles {
+    for handle in handles {
         handle.join().unwrap();
     }
 
-    for handle in replica_handles {
-        handle.join().unwrap();
-    }
-    // wait for them to finish based on some criteria
+    // TODO wait for them to finish based on some criteria
 }
