@@ -66,7 +66,8 @@ impl Runnable for Client {
         thread::sleep(Duration::from_millis(10));
         let message = Message { mtype: MessageType::READ, sender_id: self.id.clone(), total_counter: -1, counters: HashMap::new()};
         self.network.send_message(&self.assigned_replica_id, message);
-        
+        thread::sleep(Duration::from_millis(10));
+
         while self.running.load(Ordering::SeqCst) {
             let r = self.rx.try_recv();
             if let Ok(message) = r {

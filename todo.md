@@ -1,8 +1,8 @@
-- [ ] Make a framework that we can use
-    - [ ] Add a trait for clients and a trait for replicas
-    - [ ] Do Argument Parsing (James)
+- [o] Make a framework that we can use
+    - [X] Add a trait for clients and a trait for replicas
+    - [X] Do Argument Parsing (James)
     - [ ] Make a main method that runs all the data types
-    - [ ] Implement messages
+    - [X] Implement messages
     - [ ] Add an ending condition
 - [ ] Implement some sort of correctness checker
     - [ ] Brainstorm ideas of how that would work
