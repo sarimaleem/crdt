@@ -1,8 +1,8 @@
-use clap::{arg, builder::ValueParserFactory, command, value_parser, ArgAction, Command};
+use clap::{arg, command, value_parser};
 
 pub enum CrdtTypes {
-    G_COUNTER,
-    PN_COUNTER,
+    GCounter,
+    PnCounter,
     // blah blah blah add them if you wish
 }
 
@@ -60,8 +60,8 @@ impl ArgOptions {
         let num_replicas = matches.get_one::<i32>("num_replicas").unwrap().clone();
         let num_requests = matches.get_one::<i32>("num_requests").unwrap().clone();
         let crdt_type: CrdtTypes = match matches.get_one::<i32>("crdt_type").unwrap() {
-            0 => CrdtTypes::G_COUNTER,
-            1 => CrdtTypes::PN_COUNTER,
+            0 => CrdtTypes::GCounter,
+            1 => CrdtTypes::PnCounter,
             _ => panic!(),
         };
         let send_reliability = matches.get_one::<f64>("send_reliability").unwrap().clone();

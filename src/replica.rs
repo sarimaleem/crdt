@@ -8,7 +8,6 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-
 pub struct Replica {
     id: String,
     rx: Receiver<Message>,
@@ -46,14 +45,11 @@ impl Replica {
         let ack_message = Message::new(MessageType::ADDOK, self.id.to_string(), -1, self.counters.clone());
         self.network.broadcast_replicas(broadcast_message);
         self.network.send_message(&message.sender_id, ack_message);
-        println!("TODO");
     }
 
     fn handle_merge(&mut self, message: Message) {
         for (node, counter) in message.counters.iter() {
-            if self.counters.contains_key(node) {
-                self.counters.insert(node.to_string(), std::cmp::max(*counter, *self.counters.get(node).unwrap_or(&0)));
-            }
+            self.counters.insert(node.to_string(), std::cmp::max(*counter, *self.counters.get(node).unwrap_or(&0)));
         }
     }
 }

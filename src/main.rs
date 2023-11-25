@@ -8,6 +8,7 @@ mod network;
 use std::sync::atomic::AtomicBool;
 use std::sync::{mpsc, Arc};
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use argoptions::ArgOptions;
 use message::Message;
@@ -92,8 +93,11 @@ fn run_nodes(nodes: Vec<Box<dyn Runnable + Send>>) -> Vec<JoinHandle<()>> {
 // FIXME this is a work in progress
 fn run(options: argoptions::ArgOptions) {
     let running = Arc::new(AtomicBool::new(true));
-    let nodes = create_nodes(options, running);
+    let nodes = create_nodes(options, running.clone());
     let handles = run_nodes(nodes);
+
+    thread::sleep(Duration::from_millis(500));
+    running.swap(false, std::sync::atomic::Ordering::SeqCst);
 
     for handle in handles {
         handle.join().unwrap();
