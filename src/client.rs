@@ -1,5 +1,6 @@
 use crate::message::MessageType;
 use crate::network::Network;
+use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -9,7 +10,7 @@ use std::sync::{
 use crate::{message::Message, traits::Runnable};
 
 pub struct Client {
-    id: i32,
+    id: String,
     n_requests: i32,
     network: Network,
     assigned_replica_id: String,
@@ -19,7 +20,7 @@ pub struct Client {
 
 impl Client {
     pub fn new(
-        id: i32,
+        id: String,
         n_requests: i32,
         network: Network, 
         assigned_replica_id: String,
@@ -47,9 +48,18 @@ impl Client {
 
 impl Runnable for Client {
     // add code here
+    //
     fn run(&mut self) {
+        for _ in 0..self.n_requests {
+            let message = Message { mtype: MessageType::ADD, sender_id: self.id.clone(), total_counter: -1, counters: HashMap::new()};
+            self.network.send_message(&self.assigned_replica_id, message);
+        }
+
+        // TODO figure out timeouts and dropped messages here, do we resend? maybe there should be
+        // another strategy and a resend on a timeout. maybe there needs to be timestamps on no
+        // ack
         while self.running.load(Ordering::SeqCst) {
-            let r = self.rx.try_recv();
+            let r = self.rx.recv();
             if let Ok(message) = r {
                 match message.mtype {
                     MessageType::READOK => self.handle_read_ok(message),

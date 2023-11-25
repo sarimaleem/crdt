@@ -22,7 +22,6 @@ fn main() {
     run(opts);
 }
 
-// FIXME this is a work in progress
 fn create_nodes(args: ArgOptions, running: Arc<AtomicBool>) -> Vec<Box<dyn Runnable + Send>> {
 
     let mut nodes: Vec<Box<dyn Runnable + Send>> = Vec::new();
@@ -51,7 +50,7 @@ fn create_nodes(args: ArgOptions, running: Arc<AtomicBool>) -> Vec<Box<dyn Runna
     // create replicas
     for i in 0..args.num_replicas {
         let replica = Replica::new(
-            i,
+            format!("replica_{}", i),
             replica_receivers.remove(0),
             network.clone(),
             running.clone(),
@@ -64,7 +63,7 @@ fn create_nodes(args: ArgOptions, running: Arc<AtomicBool>) -> Vec<Box<dyn Runna
         let assigned_replica = (i % args.num_replicas) as usize;
         let assigned_replica_id = format!("replica_{}", assigned_replica);
         let client = Client::new(
-            i,
+            format!("client_{}", i),
             args.num_requests,
             network.clone(),
             assigned_replica_id,

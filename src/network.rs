@@ -24,6 +24,14 @@ impl Network {
         // TODO add drop probability stuff here
         sender.send(message).unwrap();
     }
+
+    pub fn broadcast_replicas(&mut self, message: Message) {
+        for (id, sender) in self.senders.iter() {
+            if id.starts_with("replica") {
+                sender.send(message.clone()).unwrap();
+            }
+        }
+    }
 }
 
 impl Clone for Network {
