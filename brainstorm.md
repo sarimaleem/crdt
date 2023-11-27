@@ -1,5 +1,7 @@
 # CRDT final project
 
+## g-counter
+
 1. Implement framework and command line arguemnts
 2. Framework can work with unreliable and reliable messages
 3. Figure out consistency stuff with these CRDT's
@@ -25,3 +27,8 @@ num_requests
 crdt_type
 send_reliability
 verbosity?
+
+## json-crdt
+1. Basic structs
+   1. tree representation
+   2. 
