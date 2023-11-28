@@ -27,8 +27,3 @@ num_requests
 crdt_type
 send_reliability
 verbosity?
-
-## json-crdt
-1. Basic structs
-   1. tree representation
-   2. 

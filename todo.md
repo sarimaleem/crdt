@@ -1,3 +1,4 @@
+### g-counter
 - [o] Make a framework that we can use
     - [X] Add a trait for clients and a trait for replicas
     - [X] Do Argument Parsing (James)
@@ -21,3 +22,11 @@
 - [ ] Write report
     - [ ] Compare complexity of each implementation
     - [ ] Compare performance of each implementation
+
+
+### json-crdt
+- state representation
+    - local state
+        - how to build and modify jsons
+    - op struct
+        - should just pass them in channels
