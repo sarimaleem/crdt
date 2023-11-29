@@ -11,8 +11,11 @@ use tokio::select;
 /**
 1. all the participants join at once, and then we start executing
 2. all participants would be on different threads
-3. use tokio as the async runtime for handling the communication between different JSONDoc instances
-4.
+3. use tokio as the async runtime for handling the communication between different JSONDoc
+instances, spawn runtimes for json doc clients
+    1. tokio runtime spawning on the same thread of json worker
+    2. runtime responsible for sending operations and receiving operations
+    3. use Arc to share all the data
 */
 
 fn main() {
