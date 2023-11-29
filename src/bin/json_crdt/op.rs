@@ -8,14 +8,14 @@ pub enum OpType {
 }
 
 pub struct ClockId {
-    node_id: u32,
-    clock: u32,
+    pub node_id: u32,
+    pub clock: u32,
 }
 
 pub struct Op {
-    id: ClockId,
-    deps: HashSet<ClockId>,
-    cursor: Vec<String>,
-    action: OpType,
-    action_value: Option<Value>,
+    pub id: ClockId,
+    pub deps: HashSet<ClockId>,
+    pub cursor: Vec<String>,
+    pub action: OpType,
+    pub action_value: Option<Value>,
 }
