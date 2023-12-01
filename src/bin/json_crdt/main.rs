@@ -6,6 +6,7 @@ use serde_json::{json, Result, Value};
 use crate::jsondoc::JSONDoc;
 use tokio::sync::broadcast;
 use tokio::select;
+use std::thread;
 
 
 /**
@@ -23,9 +24,50 @@ fn main() {
     // for every thread that we want to create, we create a json document
     // the json document will apply the changes to themselves, and then dispatch
     // those to all other clients
-    let a = JSONDoc::new(1);
-    println!("{}", a);
+    // let a = JSONDoc::new(1);
+    // println!("{}", a);
+
 }
+
+// #[tokio::main]
+// async fn main() {
+//     // Create a broadcast channel
+//     let (tx, _) = broadcast::channel(16);
+//
+//     let tx2 = tx.clone();
+//
+//     // Create multiple receivers
+//     let mut rx1 = tx.subscribe();
+//     let mut rx2 = tx.subscribe();
+//
+//     // Send data asynchronously
+//     tokio::spawn(async move {
+//         for i in 0..10 {
+//             tx.send(i).unwrap();
+//             tx2.send(-i).unwrap();
+//             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+//         }
+//     });
+//
+//     loop {
+//         select! {
+//             result = rx1.recv() => {
+//                 match result {
+//                     Ok(message) => println!("Receiver 1 got: {}", message),
+//                     Err(e) => {break;},
+//                 }
+//             },
+//             result = rx2.recv() => {
+//                 match result {
+//                     Ok(message) => println!("Receiver 2 got: {}", message),
+//                     Err(e) => {break;},
+//                 }
+//             },
+//             else => break,
+//         }
+//     }
+// }
+
 
 // #[tokio::main]
 // async fn main() {

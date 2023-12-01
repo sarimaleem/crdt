@@ -1,46 +1,64 @@
 /// a struct that would store the local doc.
 use serde_json::{ Value};
-use std::fmt;
-use std::path::Component::ParentDir;
+use std::{fmt, thread};
+use std::sync::Arc;
+use tokio::sync::broadcast::{Sender, Receiver};
 use crate::op::Op;
 
 #[derive(Debug)]
 /// This is struct that would hold the actual json document,
 pub struct JSONDoc {
     /// the lamport time of this JSONDoc
-    clock: u32,
+    clock: Arc<u32>,
     /// the id of the doc
     pub id: u32,
     /// Doc representation using serde_json
-    pub doc: Value,
+    pub doc: Arc<Value>,
+    // sender: Arc<Sender<Op>>,
+    // receiver: Arc<Receiver<Op>>,
 }
 
 impl JSONDoc {
-    pub fn new(self, id: u32) -> JSONDoc {
+    pub fn new(self, id: u32, sender: &mut Sender<Op>) -> JSONDoc {
         JSONDoc {
             id: (id),
-            clock: (0),
-            doc: Value::Object(Default::default()),
+            clock: (Arc::new(0)),
+            doc: Arc::new(Value::Object(Default::default())),
+            // sender: Arc::new(sender.clone()),
+            // receiver: Arc::new(self.sender.subscribe()),
         }
     }
 
-    pub fn execute(self, operations: &Vec<Op>) {
-        for operation in operations {
-            if operation.id.node_id == self.id {
-                self.apply_op(operation);
-                self.broadcast_op(operation);
-            } else {
-
-            }
-        }
-    }
-
-    pub fn apply_op(self, operation: &Op) {
+    pub fn apply_op(&mut self, operation: Op) {
 
     }
 
-    pub fn broadcast_op(self, operation: &Op) {
 
+    pub fn protocol(&mut self, operations: Vec<Op>, tx_ref: &Sender<Op>) {
+        let tx = Arc::new(tx_ref.clone());
+        let mut rx = Arc::new(tx.subscribe());
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                tokio::spawn(async move {
+                    loop {
+                        match rx.recv().await {
+                            Ok(op) =>  {self.apply_op(op);},
+                            _Err => {break;}
+                        }
+                    }
+                });
+
+                for operation in operations {
+                    tokio::spawn(async move {
+                        tx.send(operation).unwrap();
+                    });
+                }
+
+            });
+        drop(tx);
     }
 }
 
