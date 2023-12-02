@@ -4,6 +4,8 @@ mod message;
 mod replica;
 mod traits;
 mod network;
+mod array_client;
+mod array_replica;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{mpsc, Arc};

@@ -61,7 +61,7 @@ impl Runnable for Replica {
                     Message::CounterReadRequest(message) => self.handle_read(message),
                     Message::CounterIncrementRequest(message) => self.handle_increment_request(message),
                     Message::CounterMerge(message) => self.handle_merge(message),
-                    Message::CounterReadResult(message) => panic!(),
+                    Message::CounterReadResult(_) => panic!(),
                 }
             }
         }
