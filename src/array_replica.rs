@@ -1,4 +1,6 @@
-use crate::message::Message;
+use crate::message::{
+    ArrayInsertOperation, ArrayInsertRequest, ArrayRemoveOperation, ArrayRemoveRequest, Message,
+};
 use crate::network::Network;
 use crate::traits::Runnable;
 use std::sync::mpsc::Receiver;
@@ -9,6 +11,26 @@ use std::cmp::Ordering;
 pub struct VPtr {
     sequence: Vec<u8>,
     id: String,
+}
+
+impl VPtr {
+    pub fn new(sequence: Vec<u8>, id: String) -> Self {
+        Self { sequence, id }
+    }
+}
+
+pub struct Vertex {
+    ptr: VPtr,
+    value: char,
+}
+
+impl Clone for VPtr {
+    fn clone(&self) -> Self {
+        Self {
+            sequence: self.sequence.clone(),
+            id: self.id.clone(),
+        }
+    }
 }
 
 impl Ord for VPtr {
@@ -67,10 +89,57 @@ pub struct ArrayReplica {
     rx: Receiver<Message>,
     network: Network,
     running: Arc<AtomicBool>,
-    array: Vec<VPtr>,
+    vertices: Vec<Vertex>,
 }
 
-impl ArrayReplica {}
+impl ArrayReplica {
+    fn handle_array_insert_request(&mut self, req: ArrayInsertRequest) {
+        let left = if req.index == 0 {
+            Vec::new()
+        } else {
+            self.vertices[req.index - 1].ptr.sequence.clone()
+        };
+        let right = if req.index == self.vertices.len() {
+            Vec::new()
+        } else {
+            self.vertices[req.index].ptr.sequence.clone()
+        };
+        let ptr = VPtr::new(generate_seq(&left, &right), self.id.clone());
+        let inserted_message =
+            Message::create_array_insert_operation(self.id.clone(), ptr, req.value);
+        self.network.broadcast_replicas(inserted_message);
+    }
+
+    fn handle_array_remove_request(&mut self, req: ArrayRemoveRequest) {
+        let ptr = self.vertices[req.index].ptr.clone();
+        let removed_message = Message::create_array_remove_operation(self.id.clone(), ptr);
+        self.network.broadcast_replicas(removed_message);
+    }
+
+    fn handle_array_insert_operation(&mut self, op: ArrayInsertOperation) {
+        // TODO check if this is correct, I'm not sure how the binary search works, and I'd want it
+        // to return the less than greater than value right?
+        let mut idx = match self.vertices.binary_search_by(|v| v.ptr.cmp(&op.at)) {
+            Ok(i) | Err(i) => i,
+        };
+        if self.vertices[idx].ptr < op.at {
+            idx += 1;
+        }
+        self.vertices.insert(
+            idx,
+            Vertex {
+                ptr: op.at,
+                value: op.value,
+            },
+        );
+    }
+
+    fn handle_array_remove_operation(&mut self, op: ArrayRemoveOperation) {
+        if let Ok(idx) = self.vertices.binary_search_by(|v| v.ptr.cmp(&op.at)) {
+            self.vertices.remove(idx);
+        }
+    }
+}
 
 impl Runnable for ArrayReplica {
     fn run(&mut self) {
@@ -78,6 +147,10 @@ impl Runnable for ArrayReplica {
             let r = self.rx.try_recv();
             if let Ok(message) = r {
                 match message {
+                    Message::ArrayInsertRequest(m) => self.handle_array_insert_request(m),
+                    Message::ArrayInsertOperation(m) => self.handle_array_insert_operation(m),
+                    Message::ArrayRemoveRequest(m) => self.handle_array_remove_request(m),
+                    Message::ArrayRemoveOperation(m) => self.handle_array_remove_operation(m),
                     _ => panic!(),
                 }
             }

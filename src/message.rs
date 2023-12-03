@@ -25,23 +25,29 @@ pub struct CounterMerge {
     pub counters: HashMap<String, i32>,
 }
 
+#[derive(Clone)]
 pub struct ArrayInsertRequest {
     pub sender_id: String,
-    pub index: i32,
+    pub index: usize,
     pub value: char,
 }
 
+#[derive(Clone)]
 pub struct ArrayRemoveRequest {
     pub sender_id: String,
-    pub index: i32,
+    pub index: usize,
 }
 
+#[derive(Clone)]
 pub struct ArrayInsertOperation {
+    pub sender_id: String,
     pub at: VPtr,
     pub value: char,
 }
 
+#[derive(Clone)]
 pub struct ArrayRemoveOperation {
+    pub sender_id: String,
     pub at: VPtr,
 }
 
@@ -51,6 +57,10 @@ pub enum Message {
     CounterIncrementRequest(CounterIncrementRequest),
     CounterReadResult(CounterReadResult),
     CounterMerge(CounterMerge),
+    ArrayInsertRequest(ArrayInsertRequest),
+    ArrayInsertOperation(ArrayInsertOperation),
+    ArrayRemoveRequest(ArrayRemoveRequest),
+    ArrayRemoveOperation(ArrayRemoveOperation),
 }
 
 impl Message {
@@ -74,5 +84,29 @@ impl Message {
             sender_id,
             counters,
         })
+    }
+
+    pub fn create_array_insert_request(sender_id: String, index: usize, value: char) -> Message {
+        Message::ArrayInsertRequest(ArrayInsertRequest {
+            sender_id,
+            index,
+            value,
+        })
+    }
+
+    pub fn create_array_remove_request(sender_id: String, index: usize) -> Message {
+        Message::ArrayRemoveRequest(ArrayRemoveRequest { sender_id, index })
+    }
+
+    pub fn create_array_insert_operation(sender_id: String, at: VPtr, value: char) -> Message {
+        Message::ArrayInsertOperation(ArrayInsertOperation {
+            sender_id,
+            at,
+            value,
+        })
+    }
+
+    pub fn create_array_remove_operation(sender_id: String, at: VPtr) -> Message {
+        Message::ArrayRemoveOperation(ArrayRemoveOperation { sender_id, at })
     }
 }
