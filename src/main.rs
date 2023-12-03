@@ -9,20 +9,25 @@ use crate::traits::Runnable;
 use argoptions::ArgOptions;
 use counter::client::CounterClient;
 use counter::replica::CounterReplica;
+use lseq::client::LSeqClient;
+use lseq::replica::LSeqReplica;
 use message::Message;
 use network::Network;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{mpsc, Arc, Barrier};
 use std::thread::{self, JoinHandle};
-use std::time::Duration;
 
 fn main() {
     let opts = ArgOptions::new();
     run(opts);
 }
 
-fn create_counter_nodes(args: ArgOptions, barrier: Arc<Barrier>, running: Arc<AtomicBool>) -> Vec<Box<dyn Runnable + Send>> {
+fn create_counter_nodes(
+    args: ArgOptions,
+    barrier: Arc<Barrier>,
+    running: Arc<AtomicBool>,
+) -> Vec<Box<dyn Runnable + Send>> {
     let mut nodes: Vec<Box<dyn Runnable + Send>> = Vec::new();
     let mut network = Network::new();
 
@@ -48,19 +53,35 @@ fn create_counter_nodes(args: ArgOptions, barrier: Arc<Barrier>, running: Arc<At
 
     // create replicas
     for i in 0..args.num_replicas {
-        let replica = CounterReplica::new(
-            format!("replica_{}", i),
-            replica_receivers.remove(0),
-            network.clone(),
-            running.clone(),
-        );
-        nodes.push(Box::new(replica));
+        match args.crdt_type {
+            argoptions::CrdtTypes::Counter => {
+                let replica = CounterReplica::new(
+                    format!("replica_{}", i),
+                    replica_receivers.remove(0),
+                    network.clone(),
+                    running.clone(),
+                );
+                nodes.push(Box::new(replica));
+            }
+            argoptions::CrdtTypes::LSeq => {
+                let replica = LSeqReplica::new(
+                    format!("replica_{}", i),
+                    replica_receivers.remove(0),
+                    network.clone(),
+                    running.clone(),
+                );
+                nodes.push(Box::new(replica));
+            }
+            argoptions::CrdtTypes::Set => todo!(),
+        };
     }
 
     // create clients
     for i in 0..args.num_clients {
         let assigned_replica = (i % args.num_replicas) as usize;
         let assigned_replica_id = format!("replica_{}", assigned_replica);
+        match args.crdt_type {
+            argoptions::CrdtTypes::Counter => {
         let client = CounterClient::new(
             format!("client_{}", i),
             args.num_requests,
@@ -68,9 +89,25 @@ fn create_counter_nodes(args: ArgOptions, barrier: Arc<Barrier>, running: Arc<At
             assigned_replica_id,
             client_receivers.remove(0),
             running.clone(),
-            barrier.clone()
+            barrier.clone(),
         );
         nodes.push(Box::new(client));
+            },
+            argoptions::CrdtTypes::LSeq => {
+        let client = LSeqClient::new(
+            format!("client_{}", i),
+            args.num_requests,
+            network.clone(),
+            assigned_replica_id,
+            client_receivers.remove(0),
+            running.clone(),
+            barrier.clone(),
+        );
+        nodes.push(Box::new(client));
+
+            },
+            argoptions::CrdtTypes::Set => todo!(),
+        }
     }
 
     return nodes;

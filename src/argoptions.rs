@@ -1,9 +1,9 @@
 use clap::{arg, command, value_parser};
 
 pub enum CrdtTypes {
-    GCounter,
-    PnCounter,
-    // blah blah blah add them if you wish
+    Counter,
+    LSeq,
+    Set,
 }
 
 pub struct ArgOptions {
@@ -60,8 +60,9 @@ impl ArgOptions {
         let num_replicas = matches.get_one::<usize>("num_replicas").unwrap().clone();
         let num_requests = matches.get_one::<usize>("num_requests").unwrap().clone();
         let crdt_type: CrdtTypes = match matches.get_one::<i32>("crdt_type").unwrap() {
-            0 => CrdtTypes::GCounter,
-            1 => CrdtTypes::PnCounter,
+            0 => CrdtTypes::Counter,
+            1 => CrdtTypes::LSeq,
+            2 => CrdtTypes::Set,
             _ => panic!(),
         };
         let send_reliability = matches.get_one::<f64>("send_reliability").unwrap().clone();
