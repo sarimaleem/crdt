@@ -13,7 +13,7 @@ use message::Message;
 use network::Network;
 
 use std::sync::atomic::AtomicBool;
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Barrier};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
@@ -22,7 +22,7 @@ fn main() {
     run(opts);
 }
 
-fn create_counter_nodes(args: ArgOptions, running: Arc<AtomicBool>) -> Vec<Box<dyn Runnable + Send>> {
+fn create_counter_nodes(args: ArgOptions, barrier: Arc<Barrier>, running: Arc<AtomicBool>) -> Vec<Box<dyn Runnable + Send>> {
     let mut nodes: Vec<Box<dyn Runnable + Send>> = Vec::new();
     let mut network = Network::new();
 
@@ -68,6 +68,7 @@ fn create_counter_nodes(args: ArgOptions, running: Arc<AtomicBool>) -> Vec<Box<d
             assigned_replica_id,
             client_receivers.remove(0),
             running.clone(),
+            barrier.clone()
         );
         nodes.push(Box::new(client));
     }
@@ -87,18 +88,14 @@ fn run_nodes(nodes: Vec<Box<dyn Runnable + Send>>) -> Vec<JoinHandle<()>> {
     return handles;
 }
 
-// FIXME this is a work in progress
 fn run(options: argoptions::ArgOptions) {
     let running = Arc::new(AtomicBool::new(true));
-    let nodes = create_counter_nodes(options, running.clone());
-    let handles = run_nodes(nodes);
+    let barrier = Arc::new(Barrier::new(options.num_clients));
 
-    thread::sleep(Duration::from_millis(500));
-    running.swap(false, std::sync::atomic::Ordering::SeqCst);
+    let nodes = create_counter_nodes(options, barrier, running.clone());
+    let handles = run_nodes(nodes);
 
     for handle in handles {
         handle.join().unwrap();
     }
-
-    // TODO wait for them to finish based on some criteria
 }
