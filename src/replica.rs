@@ -1,12 +1,76 @@
 use crate::message::{Message, CounterReadRequest, CounterMerge, CounterIncrementRequest};
 use crate::network::Network;
 use crate::traits::Runnable;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 use std::sync::mpsc::Receiver;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
+use std::cmp;
+
+enum VClockCompareResult {
+    EQUAL,
+    LESS_THAN,
+    GREATER_THAN,
+    CONCURRENT,
+}
+
+struct VClock {
+    pub clock: HashMap<String, i32>,
+}
+
+impl VClock {
+    fn new() -> Self {
+        Self {
+            clock: HashMap::new()
+        }
+    }
+
+    fn compare(&self, rhs: &VClock) -> VClockCompareResult {
+        let mut less = false;
+        let mut more = false;
+        for (replica_id, clock_value) in &self.clock {
+            let lhs_stamp = clock_value;
+            let rhs_stamp = rhs.clock.get(replica_id).unwrap();
+            if lhs_stamp < rhs_stamp {
+                less = true
+            } else if lhs_stamp > rhs_stamp {
+                more = true
+            }
+        }
+
+        if less & more {
+            return VClockCompareResult::CONCURRENT;
+        }
+
+        if less {
+            return VClockCompareResult::LESS_THAN;
+        }
+
+        if more {
+            return VClockCompareResult::GREATER_THAN;
+        }
+
+        VClockCompareResult::EQUAL
+    }
+
+    fn merge(&mut self, other: &VClock) {
+        let mut new_clock: HashMap<String, i32> = HashMap::new();
+        for key in self.clock.keys() {
+            new_clock.insert(key.clone(), cmp::max(self.clock.get(key).unwrap().clone(), other.clock
+                .get(key)
+                .unwrap().clone()));
+        }
+        self.clock = new_clock;
+    }
+
+    fn increment(&mut self, id: &String) {
+        self.clock.insert(id.clone(), self.clock.get(id).unwrap() + 1);
+    }
+}
+
 pub struct Replica {
     id: String,
     rx: Receiver<Message>,
@@ -62,6 +126,7 @@ impl Runnable for Replica {
                     Message::CounterIncrementRequest(message) => self.handle_increment_request(message),
                     Message::CounterMerge(message) => self.handle_merge(message),
                     Message::CounterReadResult(message) => panic!(),
+                    _ => panic!(),
                 }
             }
         }
@@ -73,6 +138,7 @@ pub struct SetsReplica {
     rx: Receiver<Message>,
     network: Network,
     running: Arc<AtomicBool>,
-    counters: HashMap<String, i32>,
+    adds: HashMap<String, VClock>,
+    removes: HashMap<String, VClock>,
 }
 
