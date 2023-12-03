@@ -7,7 +7,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-pub struct Replica {
+pub struct CounterReplica {
     id: String,
     rx: Receiver<Message>,
     network: Network,
@@ -15,7 +15,7 @@ pub struct Replica {
     counters: HashMap<String, i32>,
 }
 
-impl Replica {
+impl CounterReplica {
     pub fn new(
         id: String,
         rx: Receiver<Message>,
@@ -54,7 +54,7 @@ impl Replica {
     }
 }
 
-impl Runnable for Replica {
+impl Runnable for CounterReplica {
     fn run(&mut self) {
         while self.running.load(Ordering::SeqCst) {
             let r = self.rx.try_recv();

@@ -1,32 +1,28 @@
 mod argoptions;
-mod client;
+mod counter;
+mod lseq;
 mod message;
-mod replica;
-mod traits;
 mod network;
-mod array_client;
-mod array_replica;
+mod traits;
+
+use crate::traits::Runnable;
+use argoptions::ArgOptions;
+use counter::client::CounterClient;
+use counter::replica::CounterReplica;
+use message::Message;
+use network::Network;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{mpsc, Arc};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use argoptions::ArgOptions;
-use message::Message;
-use network::Network;
-
-use crate::client::Client;
-use crate::replica::Replica;
-use crate::traits::Runnable;
-
 fn main() {
     let opts = ArgOptions::new();
     run(opts);
 }
 
-fn create_nodes(args: ArgOptions, running: Arc<AtomicBool>) -> Vec<Box<dyn Runnable + Send>> {
-
+fn create_counter_nodes(args: ArgOptions, running: Arc<AtomicBool>) -> Vec<Box<dyn Runnable + Send>> {
     let mut nodes: Vec<Box<dyn Runnable + Send>> = Vec::new();
     let mut network = Network::new();
 
@@ -52,7 +48,7 @@ fn create_nodes(args: ArgOptions, running: Arc<AtomicBool>) -> Vec<Box<dyn Runna
 
     // create replicas
     for i in 0..args.num_replicas {
-        let replica = Replica::new(
+        let replica = CounterReplica::new(
             format!("replica_{}", i),
             replica_receivers.remove(0),
             network.clone(),
@@ -65,7 +61,7 @@ fn create_nodes(args: ArgOptions, running: Arc<AtomicBool>) -> Vec<Box<dyn Runna
     for i in 0..args.num_clients {
         let assigned_replica = (i % args.num_replicas) as usize;
         let assigned_replica_id = format!("replica_{}", assigned_replica);
-        let client = Client::new(
+        let client = CounterClient::new(
             format!("client_{}", i),
             args.num_requests,
             network.clone(),
@@ -86,16 +82,15 @@ fn run_nodes(nodes: Vec<Box<dyn Runnable + Send>>) -> Vec<JoinHandle<()>> {
             node.run();
         });
         handles.push(handle);
-    };
+    }
 
-    return handles
+    return handles;
 }
-
 
 // FIXME this is a work in progress
 fn run(options: argoptions::ArgOptions) {
     let running = Arc::new(AtomicBool::new(true));
-    let nodes = create_nodes(options, running.clone());
+    let nodes = create_counter_nodes(options, running.clone());
     let handles = run_nodes(nodes);
 
     thread::sleep(Duration::from_millis(500));

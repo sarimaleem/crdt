@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use crate::{message::Message, traits::Runnable};
 
-pub struct Client {
+pub struct CounterClient {
     id: String,
     n_requests: i32,
     network: Network,
@@ -19,7 +19,7 @@ pub struct Client {
     running: Arc<AtomicBool>,
 }
 
-impl Client {
+impl CounterClient {
     pub fn new(
         id: String,
         n_requests: i32,
@@ -43,7 +43,7 @@ impl Client {
     }
 }
 
-impl Runnable for Client {
+impl Runnable for CounterClient {
     // add code here
     //
     fn run(&mut self) {
