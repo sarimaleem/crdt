@@ -67,3 +67,12 @@ impl Runnable for Replica {
         }
     }
 }
+
+pub struct SetsReplica {
+    id: String,
+    rx: Receiver<Message>,
+    network: Network,
+    running: Arc<AtomicBool>,
+    counters: HashMap<String, i32>,
+}
+

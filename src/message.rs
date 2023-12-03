@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 
 #[derive(Clone)]
 pub struct CounterReadRequest {
@@ -42,7 +43,8 @@ pub struct SetRemoveRequest {
 #[derive(Clone)]
 pub struct SetMerge {
     pub sender_id: String,
-    pub counters: HashMap<String, i32>,
+    pub add_map: HashMap<String, i32>,
+    pub remove_map: HashMap<String, i32>,
 }
 
 
@@ -52,6 +54,10 @@ pub enum Message {
     CounterIncrementRequest(CounterIncrementRequest),
     CounterReadResult(CounterReadResult),
     CounterMerge(CounterMerge),
+    SetGetRequest(SetGetRequest),
+    SetGetResult(SetGetResult),
+    SetRemoveRequest(SetRemoveRequest),
+    SetMerge(SetMerge),
 }
 
 impl Message {
