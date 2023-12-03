@@ -34,6 +34,12 @@ pub struct SetGetResult {
 }
 
 #[derive(Clone)]
+pub struct SetInsertRequest {
+    pub sender_id: String,
+    pub request: String,
+}
+
+#[derive(Clone)]
 pub struct SetRemoveRequest {
     pub sender_id: String,
     pub request: String,
@@ -55,6 +61,7 @@ pub enum Message {
     CounterMerge(CounterMerge),
     SetGetRequest(SetGetRequest),
     SetGetResult(SetGetResult),
+    SetInsertRequest(SetInsertRequest),
     SetRemoveRequest(SetRemoveRequest),
     SetMerge(SetMerge),
 }
@@ -74,5 +81,9 @@ impl Message {
 
     pub fn create_counter_merge(sender_id: String, counters: HashMap<String, i32>) -> Message {
         Message::CounterMerge(CounterMerge { sender_id, counters })
+    }
+
+    pub fn create_set_get_result(sender_id: String,  result: HashSet<String>) -> Message{
+        Message::SetGetResult(SetGetResult {sender_id, result})
     }
 }

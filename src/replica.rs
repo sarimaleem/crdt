@@ -1,4 +1,4 @@
-use crate::message::{Message, CounterReadRequest, CounterMerge, CounterIncrementRequest};
+use crate::message::{Message, CounterReadRequest, CounterMerge, CounterIncrementRequest, SetGetRequest, SetInsertRequest, SetRemoveRequest, SetMerge, CounterReadResult};
 use crate::network::Network;
 use crate::traits::Runnable;
 use std::collections::{HashMap, HashSet};
@@ -9,6 +9,7 @@ use std::sync::{
     Arc,
 };
 use std::cmp;
+use crate::replica::VClockCompareResult::LESS_THAN;
 
 enum VClockCompareResult {
     EQUAL,
@@ -17,7 +18,7 @@ enum VClockCompareResult {
     CONCURRENT,
 }
 
-struct VClock {
+pub struct VClock {
     pub clock: HashMap<String, i32>,
 }
 
@@ -142,3 +143,71 @@ pub struct SetsReplica {
     removes: HashMap<String, VClock>,
 }
 
+impl SetsReplica {
+    pub fn new(
+        id: String,
+        rx: Receiver<Message>,
+        network: Network,
+        running: Arc<AtomicBool>,
+        adds: HashMap<String, VClock>,
+        removes: HashMap<String, VClock>,
+    ) -> Self {
+        Self {
+            id,
+            rx,
+            network,
+            running,
+            adds: HashMap::new(),
+            removes: HashMap::new(),
+        }
+    }
+
+    fn handle_set_get(&mut self, message: SetGetRequest) {
+        let mut result: HashSet<String> = HashSet::new();
+
+        for (item, clk) in &self.removes {
+            // let otherClk = self.removes.get(item).unwrap().clock;
+            match self.adds.get(&*item) {
+                Some(add) => {
+                    match add.compare(clk) {
+                        LESS_THAN => {result.insert(item.clone());}
+                        _ => {}
+                    };
+                },
+                None => {}
+            }
+        }
+
+        self.network.send_message(&self.id, Message::create_set_get_result(self.id.clone(), result));
+    }
+
+    fn handle_set_insert(&mut self, message: SetInsertRequest) {
+
+    }
+
+    fn handle_set_remove(&mut self, message: SetRemoveRequest) {
+
+    }
+
+    fn handle_set_merge(&mut self, message: SetMerge) {
+
+    }
+}
+
+impl Runnable for SetsReplica {
+    fn run(&mut self) {
+        // todo!()
+        while self.running.load(Ordering::SeqCst) {
+            let r = self.rx.try_recv();
+            if let Ok(message) = r {
+                match message {
+                    Message::SetGetRequest(message) => self.handle_set_get(message),
+                    Message::SetRemoveRequest(message) => self.handle_set_remove(message),
+                    Message::SetInsertRequest(message) => self.handle_set_insert(message),
+                    Message::SetMerge(message) => self.handle_set_merge(message),
+                    _ => panic!(),
+                }
+            }
+        }
+    }
+}
