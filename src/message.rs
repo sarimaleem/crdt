@@ -1,27 +1,50 @@
-use std::collections::HashMap;
-
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone)]
 pub struct CounterReadRequest {
-    pub sender_id: String
+    pub sender_id: String,
 }
 
 #[derive(Clone)]
 pub struct CounterIncrementRequest {
-    pub sender_id: String
+    pub sender_id: String,
 }
 
 #[derive(Clone)]
 pub struct CounterReadResult {
     pub sender_id: String,
-    pub total_counter: i32
+    pub total_counter: i32,
 }
 
 #[derive(Clone)]
 pub struct CounterMerge {
     pub sender_id: String,
-    pub counters: HashMap<String, i32>
+    pub counters: HashMap<String, i32>,
 }
+
+#[derive(Clone)]
+pub struct SetGetRequest {
+    pub sender_id: String,
+}
+
+#[derive(Clone)]
+pub struct SetGetResult {
+    pub sender_id: String,
+    pub result: HashSet<String>,
+}
+
+#[derive(Clone)]
+pub struct SetRemoveRequest {
+    pub sender_id: String,
+    pub request: String,
+}
+
+#[derive(Clone)]
+pub struct SetMerge {
+    pub sender_id: String,
+    pub counters: HashMap<String, i32>,
+}
+
 
 #[derive(Clone)]
 pub enum Message {
