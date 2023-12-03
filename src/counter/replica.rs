@@ -7,7 +7,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-pub struct Replica {
+pub struct CounterReplica {
     id: String,
     rx: Receiver<Message>,
     network: Network,
@@ -15,7 +15,7 @@ pub struct Replica {
     counters: HashMap<String, i32>,
 }
 
-impl Replica {
+impl CounterReplica {
     pub fn new(
         id: String,
         rx: Receiver<Message>,
@@ -37,12 +37,14 @@ impl Replica {
         self.network.send_message(&message.sender_id, new_message);
     }
 
-    fn handle_increment_request(&mut self, message: CounterIncrementRequest) {
+    fn handle_increment_request(&mut self, _message: CounterIncrementRequest) {
         let current_value = *self.counters.get(&self.id).unwrap_or(&0);
         self.counters.insert(self.id.to_string(), current_value + 1);
 
         let merge_request = Message::create_counter_merge(self.id.clone(), self.counters.clone());
         self.network.broadcast_replicas(merge_request);
+        
+        // TODO: maybe ack the message?
     }
 
     fn handle_merge(&mut self, message: CounterMerge) {
@@ -52,7 +54,7 @@ impl Replica {
     }
 }
 
-impl Runnable for Replica {
+impl Runnable for CounterReplica {
     fn run(&mut self) {
         while self.running.load(Ordering::SeqCst) {
             let r = self.rx.try_recv();
@@ -61,7 +63,7 @@ impl Runnable for Replica {
                     Message::CounterReadRequest(message) => self.handle_read(message),
                     Message::CounterIncrementRequest(message) => self.handle_increment_request(message),
                     Message::CounterMerge(message) => self.handle_merge(message),
-                    Message::CounterReadResult(message) => panic!(),
+                    _ => panic!()
                 }
             }
         }
