@@ -9,7 +9,7 @@ use std::sync::{
     Arc,
 };
 use std::cmp;
-use crate::replica::VClockCompareResult::LESS_THAN;
+// use crate::replica::VClockCompareResult::LESS_THAN;
 
 enum VClockCompareResult {
     EQUAL,
@@ -29,7 +29,14 @@ impl VClock {
         }
     }
 
-    fn compare(&self, rhs: &VClock) -> VClockCompareResult {
+    fn new_with_clock(m: HashMap<String, i32>) -> Self {
+        Self {
+            clock: m
+        }
+    }
+
+
+    pub fn compare(&self, rhs: &VClock) -> VClockCompareResult {
         let mut less = false;
         let mut more = false;
         for (replica_id, clock_value) in &self.clock {
@@ -57,18 +64,25 @@ impl VClock {
         VClockCompareResult::EQUAL
     }
 
-    fn merge(&mut self, other: &VClock) {
+    pub fn merge(clk1: &VClock, clk2: &VClock) -> VClock {
         let mut new_clock: HashMap<String, i32> = HashMap::new();
-        for key in self.clock.keys() {
-            new_clock.insert(key.clone(), cmp::max(self.clock.get(key).unwrap().clone(), other.clock
-                .get(key)
-                .unwrap().clone()));
+        for key in clk1.keys() {
+            new_clock.insert(key.clone(),
+                             cmp::max(
+                                 clk1.get(key).unwrap().clone(),
+                                 clk2.get(key).unwrap().clone(),
+                             ));
         }
-        self.clock = new_clock;
+        VClock::new_with_clock(new_clock)
     }
 
-    fn increment(&mut self, id: &String) {
-        self.clock.insert(id.clone(), self.clock.get(id).unwrap() + 1);
+    pub fn increment(clk: &VClock, id: &String) -> VClock {
+        // let temp = VClock::new_with_clock(self.clock.clone());
+        let temp_map = clk.clock.clone();
+        let mut temp = VClock::new_with_clock(temp_map);
+        // temp.increment(id);
+        temp.clock.insert(id.clone(), temp.clock.get(id).unwrap() + 1);
+        temp
     }
 }
 
@@ -162,7 +176,7 @@ impl SetsReplica {
         }
     }
 
-    fn handle_set_get(&mut self, message: SetGetRequest) {
+    fn handle_set_get(&mut self, msg: SetGetRequest) {
         let mut result: HashSet<String> = HashSet::new();
 
         for (item, clk) in &self.removes {
@@ -170,28 +184,39 @@ impl SetsReplica {
             match self.adds.get(&*item) {
                 Some(add) => {
                     match add.compare(clk) {
-                        LESS_THAN => {result.insert(item.clone());}
+                        LESS_THAN => { result.insert(item.clone()); }
                         _ => {}
                     };
-                },
+                }
                 None => {}
             }
         }
 
-        self.network.send_message(&self.id, Message::create_set_get_result(self.id.clone(), result));
+        self.network.send_message(&msg.sender_id, Message::create_set_get_result(self.id.clone(), result));
     }
 
     fn handle_set_insert(&mut self, message: SetInsertRequest) {
+        let string_to_add = message.request;
+        let add_clk = self.adds.get(&string_to_add);
+        let mut remove_clk = self.removes.get(&string_to_add);
 
+        match (add_clk, remove_clk) {
+            (Some(&v), _) | (_, Some(&v)) => {
+                let mut clk = VClock::increment(&v, &self.id);
+                self.adds.insert(string_to_add, clk);
+                self.removes.remove(&string_to_add);
+            }
+            (_, _) => {
+                let mut clk = VClock::new();
+                clk.increment(&self.id);
+                self.adds.insert(string_to_add, clk);
+            }
+        }
     }
 
-    fn handle_set_remove(&mut self, message: SetRemoveRequest) {
+    fn handle_set_remove(&mut self, message: SetRemoveRequest) {}
 
-    }
-
-    fn handle_set_merge(&mut self, message: SetMerge) {
-
-    }
+    fn handle_set_merge(&mut self, message: SetMerge) {}
 }
 
 impl Runnable for SetsReplica {
