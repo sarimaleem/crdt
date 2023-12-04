@@ -56,7 +56,7 @@ impl Runnable for SetsClient {
         let mut rng2 = rand::thread_rng();
 
         for _ in 0..self.n_requests {
-            let is_insertion = rng1.gen_bool(0.7);
+            let is_insertion = rng1.gen_bool(0.8);
             let idx = rng2.gen_range(0..self.workload_source.len());
 
             let payload_string = self.workload_source.get(idx).unwrap();
@@ -71,8 +71,6 @@ impl Runnable for SetsClient {
             self.network
                 .send_message(&self.assigned_replica_id, message);
         }
-
-        self.barrier.wait();
 
         let message = Message::create_set_get_request(self.id.clone());
         self.network

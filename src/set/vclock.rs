@@ -8,7 +8,7 @@ pub enum VClockCompareResult {
   CONCURRENT,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct VClock {
   pub clock: HashMap<String, i32>,
 }
@@ -74,7 +74,7 @@ impl VClock {
       // let temp = VClock::new_with_clock(self.clock.clone());
       let temp_map = clk.clock.clone();
       let mut temp = VClock::new_with_clock(temp_map);
-      // temp.increment(id);
+      
       temp.clock
           .insert(id.clone(), temp.clock.get(id).unwrap() + 1);
       temp
