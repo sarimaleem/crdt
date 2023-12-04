@@ -1,10 +1,10 @@
 use crate::network::Network;
-use rand::{distributions::Alphanumeric, Rng};
+use rand::Rng;
 use std::sync::atomic::Ordering;
 use std::sync::{atomic::AtomicBool, mpsc::Receiver};
 use std::sync::{Arc, Barrier};
 
-use crate::message::{self, *};
+use crate::message::{*};
 use crate::traits::Runnable;
 
 pub struct SetsClient {
@@ -90,6 +90,6 @@ impl Runnable for SetsClient {
         // wait again then kill replicas
         self.barrier.wait();
         self.running
-            .swap(false, std::sync::atomic::Ordering::SeqCst);
+            .swap(false, Ordering::SeqCst);
     }
 }
