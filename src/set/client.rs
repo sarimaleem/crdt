@@ -1,71 +1,95 @@
 use crate::network::Network;
-use rand::{distributions::Alphanumeric, Rng};
+use rand::Rng;
 use std::sync::atomic::Ordering;
 use std::sync::{atomic::AtomicBool, mpsc::Receiver};
 use std::sync::{Arc, Barrier};
 
+use crate::message::{*};
 use crate::traits::Runnable;
-use crate::message::*;
 
 pub struct SetsClient {
-  id: String,
-  n_requests: i32,
-  network: Network,
-  assigned_replica_id: String,
-  rx: Receiver<Message>,
-  running: Arc<AtomicBool>,
-  operations: Vec<Message>,
+    id: String,
+    n_requests: usize,
+    network: Network,
+    assigned_replica_id: String,
+    rx: Receiver<Message>,
+    running: Arc<AtomicBool>,
+    barrier: Arc<Barrier>,
+    workload_source: Vec<String>,
 }
 
 impl SetsClient {
-  pub fn new(
-      id: String,
-      n_requests: i32,
-      network: Network,
-      assigned_replica_id: String,
-      rx: Receiver<Message>,
-      running: Arc<AtomicBool>,
-      operations: Vec<Message>,
-  ) -> Self {
-      Self {
-          id,
-          n_requests,
-          network,
-          assigned_replica_id,
-          rx,
-          running,
-          operations,
-      }
-  }
+    pub fn new(
+        id: String,
+        n_requests: usize,
+        network: Network,
+        assigned_replica_id: String,
+        rx: Receiver<Message>,
+        running: Arc<AtomicBool>,
+        barrier: Arc<Barrier>,
+        workload_source: Vec<String>,
+    ) -> Self {
+        Self {
+            id,
+            n_requests,
+            network,
+            assigned_replica_id,
+            rx,
+            running,
+            barrier,
+            workload_source,
+        }
+    }
 
-  fn handle_sets_read_result(&mut self, r: SetGetResult) {
-      println!("{}: {:?}", self.id, r.result);
-  }
+    fn handle_sets_get_result(&mut self, r: SetGetResult) {
+        println!("{}: {:?}", self.id, r.result);
+    }
 }
 
 impl Runnable for SetsClient {
-  fn run(&mut self) {
-      for op in &self.operations {
-          self.network.send_message(&self.assigned_replica_id, op.clone());
-      }
+    fn run(&mut self) {
+        //   for op in &self.operations {
+        //       self.network.send_message(&self.assigned_replica_id, op.clone());
+        //   }
 
-      // TODO figure out timeouts and dropped messages here, do we resend? maybe there should be
-      // another strategy and a resend on a timeout. maybe there needs to be timestamps on no
-      // ack
-      // thread::sleep(Duration::from_millis(10));
-      // let message = Message::create_counter_read_request(self.id.clone());
-      // self.network
-      //     .send_message(&self.assigned_replica_id, message);
-      // thread::sleep(Duration::from_millis(10));
+        let mut rng1 = rand::thread_rng();
+        let mut rng2 = rand::thread_rng();
 
-      while self.running.load(Ordering::SeqCst) {
-          let r = self.rx.try_recv();
-          if let Ok(message) = r {
-              match message {
-                  Message::SetGetResult(result) => self.handle_sets_read_result(result),
-                  _ => panic!(),
-              }
-          }
-      }
-  }
+        for _ in 0..self.n_requests {
+            let is_insertion = rng1.gen_bool(0.8);
+            let idx = rng2.gen_range(0..self.workload_source.len());
+
+            let payload_string = self.workload_source.get(idx).unwrap();
+
+            let message = match is_insertion {
+                true => Message::create_set_insert_request(self.id.clone(), payload_string.clone()),
+                false => {
+                    Message::create_set_remove_request(self.id.clone(), payload_string.clone())
+                }
+            };
+
+            self.network
+                .send_message(&self.assigned_replica_id, message);
+        }
+
+        let message = Message::create_set_get_request(self.id.clone());
+        self.network
+            .send_message(&self.assigned_replica_id, message);
+        self.rx.recv().unwrap();
+        self.barrier.wait();
+
+        let message = Message::create_set_get_request(self.id.clone());
+        self.network
+            .send_message(&self.assigned_replica_id, message);
+        let response = self.rx.recv().unwrap();
+        match response {
+            Message::SetGetResult(result) => self.handle_sets_get_result(result),
+            _ => panic!(),
+        }
+
+        // wait again then kill replicas
+        self.barrier.wait();
+        self.running
+            .swap(false, Ordering::SeqCst);
+    }
 }

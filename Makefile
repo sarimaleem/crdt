@@ -6,5 +6,8 @@ counter: build
 lseq: build
 	RUST_BACKTRACE=full ./target/debug/crdt -c 3 -r 2 -n 5 -t 1
 
+set: build
+	RUST_BACKTRACE=full ./target/debug/crdt -c 3 -r 2 -n 5 -t 2
+
 build: $(SOURCE_FILES)
 	cargo build

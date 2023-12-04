@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::set::vclock::VClock;
 use crate::lseq::vptr::VPtr;
+use crate::set::vclock::VClock;
 
 // Counter Messages
 #[derive(Clone)]
@@ -93,7 +93,6 @@ pub struct SetMerge {
     pub remove_map: HashMap<String, VClock>,
 }
 
-
 #[derive(Clone)]
 pub enum Message {
     CounterReadRequest(CounterReadRequest),
@@ -133,7 +132,6 @@ impl Message {
         Message::CounterMerge(CounterMerge {
             sender_id,
             counters,
-        
         })
     }
 
@@ -169,11 +167,37 @@ impl Message {
         Message::LSeqRemoveOperation(LSeqRemoveOperation { sender_id, at })
     }
 
-    pub fn create_set_get_result(sender_id: String,  result: HashSet<String>) -> Message{
-        Message::SetGetResult(SetGetResult {sender_id, result})
+    pub fn create_set_get_request(sender_id: String) -> Message {
+        Message::SetGetRequest(SetGetRequest { sender_id })
     }
 
-    pub fn create_set_merge(sender_id: String, adds: HashMap<String, VClock>, removes: HashMap<String, VClock>) -> Message {
-        Message::SetMerge(SetMerge { sender_id, add_map:adds, remove_map: removes})
+    pub fn create_set_insert_request(sender_id: String, payload: String) -> Message {
+        Message::SetInsertRequest(SetInsertRequest {
+            sender_id,
+            request: payload,
+        })
+    }
+
+    pub fn create_set_remove_request(sender_id: String, payload: String) -> Message {
+        Message::SetRemoveRequest(SetRemoveRequest {
+            sender_id,
+            request: payload,
+        })
+    }
+
+    pub fn create_set_get_result(sender_id: String, result: HashSet<String>) -> Message {
+        Message::SetGetResult(SetGetResult { sender_id, result })
+    }
+
+    pub fn create_set_merge(
+        sender_id: String,
+        adds: HashMap<String, VClock>,
+        removes: HashMap<String, VClock>,
+    ) -> Message {
+        Message::SetMerge(SetMerge {
+            sender_id,
+            add_map: adds,
+            remove_map: removes,
+        })
     }
 }
