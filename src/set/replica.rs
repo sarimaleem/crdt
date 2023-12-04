@@ -10,7 +10,7 @@ use crate::traits::Runnable;
 
 pub struct SetsReplica {
   id: String,
-  total_replicas: i32,
+  total_replicas: usize,
   rx: Receiver<Message>,
   network: Network,
   running: Arc<AtomicBool>,
@@ -21,12 +21,10 @@ pub struct SetsReplica {
 impl SetsReplica {
   pub fn new(
       id: String,
-      total_replicas: i32,
+      total_replicas: usize,
       rx: Receiver<Message>,
       network: Network,
       running: Arc<AtomicBool>,
-      adds: HashMap<String, VClock>,
-      removes: HashMap<String, VClock>,
   ) -> Self {
       Self {
           id,

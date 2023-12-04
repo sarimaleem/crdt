@@ -14,7 +14,7 @@ pub struct VClock {
 }
 
 impl VClock {
-  pub fn new(total_replicas: i32) -> Self {
+  pub fn new(total_replicas: usize) -> Self {
       let mut tmp = Self {
           clock: HashMap::new(),
       };

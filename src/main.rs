@@ -1,19 +1,22 @@
 mod argoptions;
 mod counter;
 mod lseq;
-mod set;
 mod message;
 mod network;
+mod set;
 mod traits;
 
 use crate::traits::Runnable;
 use argoptions::ArgOptions;
 use counter::client::CounterClient;
-use counter::replica::CounterReplica;
+use counter::replica::{self, CounterReplica};
 use lseq::client::LSeqClient;
 use lseq::replica::LSeqReplica;
+
 use message::Message;
 use network::Network;
+use set::client::SetsClient;
+use set::replica::SetsReplica;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{mpsc, Arc, Barrier};
@@ -73,7 +76,16 @@ fn create_counter_nodes(
                 );
                 nodes.push(Box::new(replica));
             }
-            argoptions::CrdtTypes::Set => todo!(),
+            argoptions::CrdtTypes::Set => {
+                let replica = SetsReplica::new(
+                    format!("replica_{}", i),
+                    args.num_replicas,
+                    replica_receivers.remove(0),
+                    network.clone(),
+                    running.clone(),
+                );
+                nodes.push(Box::new(replica));
+            }
         };
     }
 
@@ -83,31 +95,55 @@ fn create_counter_nodes(
         let assigned_replica_id = format!("replica_{}", assigned_replica);
         match args.crdt_type {
             argoptions::CrdtTypes::Counter => {
-        let client = CounterClient::new(
-            format!("client_{}", i),
-            args.num_requests,
-            network.clone(),
-            assigned_replica_id,
-            client_receivers.remove(0),
-            running.clone(),
-            barrier.clone(),
-        );
-        nodes.push(Box::new(client));
-            },
+                let client = CounterClient::new(
+                    format!("client_{}", i),
+                    args.num_requests,
+                    network.clone(),
+                    assigned_replica_id,
+                    client_receivers.remove(0),
+                    running.clone(),
+                    barrier.clone(),
+                );
+                nodes.push(Box::new(client));
+            }
             argoptions::CrdtTypes::LSeq => {
-        let client = LSeqClient::new(
-            format!("client_{}", i),
-            args.num_requests,
-            network.clone(),
-            assigned_replica_id,
-            client_receivers.remove(0),
-            running.clone(),
-            barrier.clone(),
-        );
-        nodes.push(Box::new(client));
-
-            },
-            argoptions::CrdtTypes::Set => todo!(),
+                let client = LSeqClient::new(
+                    format!("client_{}", i),
+                    args.num_requests,
+                    network.clone(),
+                    assigned_replica_id,
+                    client_receivers.remove(0),
+                    running.clone(),
+                    barrier.clone(),
+                );
+                nodes.push(Box::new(client));
+            }
+            // TODO: 
+            argoptions::CrdtTypes::Set => {
+                let workload: Vec<String> = vec!{
+                    "String1".to_string(),
+                    "String2".to_string(),
+                    "String3".to_string(),
+                    "String4".to_string(),
+                    "String5".to_string(),
+                    "String6".to_string(),
+                    "String7".to_string(),
+                    "String8".to_string(),
+                    "String9".to_string(),
+                    "String10".to_string()
+                };
+                let client = SetsClient::new(
+                    format!("client_{}", i),
+                    args.num_requests,
+                    network.clone(),
+                    assigned_replica_id,
+                    client_receivers.remove(0),
+                    running.clone(),
+                    barrier.clone(),
+                    workload
+                );
+                nodes.push(Box::new(client));
+            }
         }
     }
 
