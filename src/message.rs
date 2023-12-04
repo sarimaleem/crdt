@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::replica::VClock;
+
 #[derive(Clone)]
 pub struct CounterReadRequest {
     pub sender_id: String,
@@ -48,8 +50,8 @@ pub struct SetRemoveRequest {
 #[derive(Clone)]
 pub struct SetMerge {
     pub sender_id: String,
-    pub add_map: HashMap<String, i32>,
-    pub remove_map: HashMap<String, i32>,
+    pub add_map: HashMap<String, VClock>,
+    pub remove_map: HashMap<String, VClock>,
 }
 
 
@@ -85,5 +87,9 @@ impl Message {
 
     pub fn create_set_get_result(sender_id: String,  result: HashSet<String>) -> Message{
         Message::SetGetResult(SetGetResult {sender_id, result})
+    }
+
+    pub fn create_set_merge(sender_id: String, adds: HashMap<String, VClock>, removes: HashMap<String, VClock>) -> Message {
+        Message::SetMerge(SetMerge { sender_id, add_map:adds, remove_map: removes})
     }
 }

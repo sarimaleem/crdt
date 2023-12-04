@@ -1,6 +1,10 @@
-use crate::message::{Message, CounterReadRequest, CounterMerge, CounterIncrementRequest, SetGetRequest, SetInsertRequest, SetRemoveRequest, SetMerge, CounterReadResult};
+use crate::message::{
+    CounterIncrementRequest, CounterMerge, CounterReadRequest, CounterReadResult, Message,
+    SetGetRequest, SetInsertRequest, SetMerge, SetRemoveRequest,
+};
 use crate::network::Network;
 use crate::traits::Runnable;
+use std::cmp;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::sync::mpsc::Receiver;
@@ -8,8 +12,6 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use std::cmp;
-use clap::builder::Str;
 // use crate::replica::VClockCompareResult::LESS_THAN;
 
 enum VClockCompareResult {
@@ -19,29 +21,25 @@ enum VClockCompareResult {
     CONCURRENT,
 }
 
+#[derive(Clone)]
 pub struct VClock {
     pub clock: HashMap<String, i32>,
 }
 
 impl VClock {
-    fn new(
-        total_replicas: i32
-    ) -> Self {
+    fn new(total_replicas: i32) -> Self {
         let mut tmp = Self {
-            clock: HashMap::new()
+            clock: HashMap::new(),
         };
         for i in 0..total_replicas {
-          tmp.clock.insert(format!("replica_{}", i), 0);
+            tmp.clock.insert(format!("replica_{}", i), 0);
         }
         tmp
     }
 
     fn new_with_clock(m: HashMap<String, i32>) -> Self {
-        Self {
-            clock: m
-        }
+        Self { clock: m }
     }
-
 
     pub fn compare(&self, rhs: &VClock) -> VClockCompareResult {
         let mut less = false;
@@ -57,28 +55,30 @@ impl VClock {
         }
 
         if less & more {
-            return VClockCompareResult::CONCURRENT;
+            return crate::replica::VClockCompareResult::CONCURRENT;
         }
 
         if less {
-            return VClockCompareResult::LESS_THAN;
+            return crate::replica::VClockCompareResult::LESS_THAN;
         }
 
         if more {
-            return VClockCompareResult::GREATER_THAN;
+            return crate::replica::VClockCompareResult::GREATER_THAN;
         }
 
-        VClockCompareResult::EQUAL
+        crate::replica::VClockCompareResult::EQUAL
     }
 
     pub fn merge(clk1: &VClock, clk2: &VClock) -> VClock {
         let mut new_clock: HashMap<String, i32> = HashMap::new();
-        for key in clk1.keys() {
-            new_clock.insert(key.clone(),
-                             cmp::max(
-                                 clk1.get(key).unwrap().clone(),
-                                 clk2.get(key).unwrap().clone(),
-                             ));
+        for key in clk1.clock.keys() {
+            new_clock.insert(
+                key.clone(),
+                cmp::max(
+                    clk1.clock.get(key).unwrap().clone(),
+                    clk2.clock.get(key).unwrap().clone(),
+                ),
+            );
         }
         VClock::new_with_clock(new_clock)
     }
@@ -88,7 +88,8 @@ impl VClock {
         let temp_map = clk.clock.clone();
         let mut temp = VClock::new_with_clock(temp_map);
         // temp.increment(id);
-        temp.clock.insert(id.clone(), temp.clock.get(id).unwrap() + 1);
+        temp.clock
+            .insert(id.clone(), temp.clock.get(id).unwrap() + 1);
         temp
     }
 }
@@ -133,7 +134,10 @@ impl Replica {
 
     fn handle_merge(&mut self, message: CounterMerge) {
         for (node, counter) in message.counters.iter() {
-            self.counters.insert(node.to_string(), std::cmp::max(*counter, *self.counters.get(node).unwrap_or(&0)));
+            self.counters.insert(
+                node.to_string(),
+                std::cmp::max(*counter, *self.counters.get(node).unwrap_or(&0)),
+            );
         }
     }
 }
@@ -145,7 +149,9 @@ impl Runnable for Replica {
             if let Ok(message) = r {
                 match message {
                     Message::CounterReadRequest(message) => self.handle_read(message),
-                    Message::CounterIncrementRequest(message) => self.handle_increment_request(message),
+                    Message::CounterIncrementRequest(message) => {
+                        self.handle_increment_request(message)
+                    }
                     Message::CounterMerge(message) => self.handle_merge(message),
                     Message::CounterReadResult(message) => panic!(),
                     _ => panic!(),
@@ -177,7 +183,6 @@ impl SetsReplica {
     ) -> Self {
         Self {
             id,
-            id_prefix,
             total_replicas,
             rx,
             network,
@@ -195,7 +200,9 @@ impl SetsReplica {
             match self.adds.get(&*item) {
                 Some(add) => {
                     match add.compare(clk) {
-                        LESS_THAN => { result.insert(item.clone()); }
+                        crate::replica::VClockCompareResult::LESS_THAN => {
+                            result.insert(item.clone());
+                        }
                         _ => {}
                     };
                 }
@@ -203,7 +210,10 @@ impl SetsReplica {
             }
         }
 
-        self.network.send_message(&msg.sender_id, Message::create_set_get_result(self.id.clone(), result));
+        self.network.send_message(
+            &msg.sender_id,
+            Message::create_set_get_result(self.id.clone(), result),
+        );
     }
 
     fn handle_set_insert(&mut self, message: SetInsertRequest) {
@@ -212,17 +222,23 @@ impl SetsReplica {
         let mut remove_clk = self.removes.get(&string_to_add);
 
         match (add_clk, remove_clk) {
-            (Some(&v), _) | (_, Some(&v)) => {
+            (Some(v), _) | (_, Some(v)) => {
                 let mut clk = VClock::increment(&v, &self.id);
-                self.adds.insert(string_to_add, clk);
+                self.adds.insert(string_to_add.clone(), clk);
                 self.removes.remove(&string_to_add);
             }
             (_, _) => {
-                let mut clk = VClock::new();
-                clk.increment(&self.id);
+                let mut clk = VClock::new(self.total_replicas);
+                clk = VClock::increment(&clk, &self.id);
                 self.adds.insert(string_to_add, clk);
             }
         }
+
+        self.network.broadcast_replicas(Message::create_set_merge(
+            self.id.clone(),
+            self.adds.clone(),
+            self.removes.clone(),
+        ));
     }
 
     fn handle_set_remove(&mut self, message: SetRemoveRequest) {
@@ -231,20 +247,107 @@ impl SetsReplica {
         let mut remove_clk = self.removes.get(&string_to_add);
 
         match (add_clk, remove_clk) {
-            (Some(&v), _) | (_, Some(&v)) => {
+            (Some(v), _) | (_, Some(v)) => {
                 let mut clk = VClock::increment(&v, &self.id);
                 self.adds.remove(&string_to_add);
-                self.removes.insert(string_to_add, VClock::inc(&string_to_add, clk));
-            },
+                self.removes.insert(
+                    string_to_add.clone(),
+                    VClock::increment(&clk, &string_to_add),
+                );
+            }
             (_, _) => {
-                let mut clk = VClock::new();
-                clk.increment(&self.id);
+                let mut clk = VClock::new(self.total_replicas);
+                clk = VClock::increment(&clk, &self.id);
                 self.removes.insert(string_to_add, clk);
-            },
+            }
         }
+
+        self.network.broadcast_replicas(Message::create_set_merge(
+            self.id.clone(),
+            self.adds.clone(),
+            self.removes.clone(),
+        ));
     }
 
-    fn handle_set_merge(&mut self, message: SetMerge) {}
+    fn merge_map(
+        a: &HashMap<String, VClock>,
+        b: &HashMap<String, VClock>,
+    ) -> HashMap<String, VClock> {
+        let mut result = a.clone();
+        for (k, vb) in b {
+            let entry = result.entry(k.clone()).or_insert(vb.clone());
+            *entry = VClock::merge(entry, vb);
+        }
+        result
+    }
+
+    fn handle_set_merge(&mut self, message: SetMerge) {
+        let adds1 = self.adds.clone();
+        let removes1 = self.removes.clone();
+
+        let adds2 = message.add_map.clone();
+        let removes2 = message.remove_map.clone();
+
+        let addk = SetsReplica::merge_map(&adds1, &adds2);
+        let removek = SetsReplica::merge_map(&removes1, &removes2);
+
+        // let add = removek.iter().fold(addk.clone(), |mut acc, (k, vr)| {
+        //     if let Some(&va) = acc.get(k) {
+        //         match va.compare(vr) {
+        //             crate::replica::VClockCompareResult::LESS_THAN => {
+        //                 acc.remove(k);
+        //             }
+        //             _ => ()
+        //         }
+        //     }
+        //     acc
+        // });
+        let add = removek.iter().fold(addk.clone(), |mut acc, (k, vr)| {
+            // Use the entry API to handle both the existence and non-existence of the key
+            match acc.entry(k.clone()) {
+                std::collections::hash_map::Entry::Occupied(entry) => {
+                    match entry.get().compare(vr) {
+                        crate::replica::VClockCompareResult::LESS_THAN => {
+                            // Remove the entry if it meets the condition
+                            entry.remove_entry();
+                        }
+                        _ => (),
+                    }
+                }
+                std::collections::hash_map::Entry::Vacant(_) => (),
+            }
+            acc
+        });
+
+        // let rem = addk.iter().fold(removek, |mut acc, (k, va)| {
+        //     if let Some(&vr) = acc.get(k) {
+        //         match va.compare(&vr) {
+        //             crate::replica::VClockCompareResult::LESS_THAN => {
+        //                 acc.remove(k);
+        //             }
+        //             _ => ()
+        //         }
+        //     }
+        //     acc
+        // });
+
+        let rem = addk.iter().fold(removek, |mut acc, (k, va)| {
+            match acc.entry(k.clone()) {
+                std::collections::hash_map::Entry::Occupied(entry) => {
+                    if let crate::replica::VClockCompareResult::LESS_THAN = va.compare(entry.get())
+                    {
+                        // Remove the entry if it meets the condition
+                        entry.remove();
+                    }
+                }
+                std::collections::hash_map::Entry::Vacant(_) => {}
+            }
+            acc
+        });
+
+        self.adds = add;
+        self.removes = rem;
+    }
 }
 
 impl Runnable for SetsReplica {
