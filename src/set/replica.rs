@@ -44,10 +44,12 @@ impl SetsReplica {
             match self.removes.get(item) {
                 Some(clk) => {
                     match add.compare(clk) {
-                        crate::set::vclock::VClockCompareResult::GREATER_THAN => {
+                        crate::set::vclock::VClockCompareResult::LESS_THAN => {
                             result.insert(item.clone());
                         }
-                        _ => {}
+                        _ => {
+                            result.insert(item.clone());
+                        }
                     };
                 }
                 None => {
@@ -135,17 +137,6 @@ impl SetsReplica {
         let addk = SetsReplica::merge_map(&adds1, &adds2);
         let removek = SetsReplica::merge_map(&removes1, &removes2);
 
-        // let add = removek.iter().fold(addk.clone(), |mut acc, (k, vr)| {
-        //     if let Some(&va) = acc.get(k) {
-        //         match va.compare(vr) {
-        //             crate::replica::VClockCompareResult::LESS_THAN => {
-        //                 acc.remove(k);
-        //             }
-        //             _ => ()
-        //         }
-        //     }
-        //     acc
-        // });
         let add = removek.iter().fold(addk.clone(), |mut acc, (k, vr)| {
             // Use the entry API to handle both the existence and non-existence of the key
             match acc.entry(k.clone()) {
@@ -162,18 +153,6 @@ impl SetsReplica {
             }
             acc
         });
-
-        // let rem = addk.iter().fold(removek, |mut acc, (k, va)| {
-        //     if let Some(&vr) = acc.get(k) {
-        //         match va.compare(&vr) {
-        //             crate::replica::VClockCompareResult::LESS_THAN => {
-        //                 acc.remove(k);
-        //             }
-        //             _ => ()
-        //         }
-        //     }
-        //     acc
-        // });
 
         let rem = addk.iter().fold(removek, |mut acc, (k, va)| {
             match acc.entry(k.clone()) {
