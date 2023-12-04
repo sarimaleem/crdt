@@ -9,6 +9,7 @@ use std::sync::{
     Arc,
 };
 use std::cmp;
+use clap::builder::Str;
 // use crate::replica::VClockCompareResult::LESS_THAN;
 
 enum VClockCompareResult {
@@ -23,10 +24,16 @@ pub struct VClock {
 }
 
 impl VClock {
-    fn new() -> Self {
-        Self {
+    fn new(
+        total_replicas: i32
+    ) -> Self {
+        let mut tmp = Self {
             clock: HashMap::new()
+        };
+        for i in 0..total_replicas {
+          tmp.clock.insert(format!("replica_{}", i), 0);
         }
+        tmp
     }
 
     fn new_with_clock(m: HashMap<String, i32>) -> Self {
@@ -150,6 +157,7 @@ impl Runnable for Replica {
 
 pub struct SetsReplica {
     id: String,
+    total_replicas: i32,
     rx: Receiver<Message>,
     network: Network,
     running: Arc<AtomicBool>,
@@ -160,6 +168,7 @@ pub struct SetsReplica {
 impl SetsReplica {
     pub fn new(
         id: String,
+        total_replicas: i32,
         rx: Receiver<Message>,
         network: Network,
         running: Arc<AtomicBool>,
@@ -168,6 +177,8 @@ impl SetsReplica {
     ) -> Self {
         Self {
             id,
+            id_prefix,
+            total_replicas,
             rx,
             network,
             running,
@@ -214,7 +225,24 @@ impl SetsReplica {
         }
     }
 
-    fn handle_set_remove(&mut self, message: SetRemoveRequest) {}
+    fn handle_set_remove(&mut self, message: SetRemoveRequest) {
+        let string_to_add = message.request;
+        let add_clk = self.adds.get(&string_to_add);
+        let mut remove_clk = self.removes.get(&string_to_add);
+
+        match (add_clk, remove_clk) {
+            (Some(&v), _) | (_, Some(&v)) => {
+                let mut clk = VClock::increment(&v, &self.id);
+                self.adds.remove(&string_to_add);
+                self.removes.insert(string_to_add, VClock::inc(&string_to_add, clk));
+            },
+            (_, _) => {
+                let mut clk = VClock::new();
+                clk.increment(&self.id);
+                self.removes.insert(string_to_add, clk);
+            },
+        }
+    }
 
     fn handle_set_merge(&mut self, message: SetMerge) {}
 }
