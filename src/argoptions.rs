@@ -1,15 +1,15 @@
 use clap::{arg, command, value_parser};
 
 pub enum CrdtTypes {
-    GCounter,
-    PnCounter,
-    // blah blah blah add them if you wish
+    Counter,
+    LSeq,
+    Set,
 }
 
 pub struct ArgOptions {
-    pub num_clients: i32,
-    pub num_replicas: i32,
-    pub num_requests: i32,
+    pub num_clients: usize,
+    pub num_replicas: usize,
+    pub num_requests: usize,
     pub crdt_type: CrdtTypes,
     pub send_reliability: f64,
     pub verbosity: i32,
@@ -21,19 +21,19 @@ impl ArgOptions {
             .arg(
                 arg!(-c[num_clients])
                     .required(false)
-                    .value_parser(value_parser!(i32))
+                    .value_parser(value_parser!(usize))
                     .default_value("1"),
             )
             .arg(
                 arg!(-r[num_replicas])
                     .required(false)
-                    .value_parser(value_parser!(i32))
+                    .value_parser(value_parser!(usize))
                     .default_value("2"),
             )
             .arg(
                 arg!(-n[num_requests])
                     .required(false)
-                    .value_parser(value_parser!(i32))
+                    .value_parser(value_parser!(usize))
                     .default_value("5"),
             )
             .arg(
@@ -56,12 +56,13 @@ impl ArgOptions {
             )
             .get_matches();
 
-        let num_clients = matches.get_one::<i32>("num_clients").unwrap().clone();
-        let num_replicas = matches.get_one::<i32>("num_replicas").unwrap().clone();
-        let num_requests = matches.get_one::<i32>("num_requests").unwrap().clone();
+        let num_clients = matches.get_one::<usize>("num_clients").unwrap().clone();
+        let num_replicas = matches.get_one::<usize>("num_replicas").unwrap().clone();
+        let num_requests = matches.get_one::<usize>("num_requests").unwrap().clone();
         let crdt_type: CrdtTypes = match matches.get_one::<i32>("crdt_type").unwrap() {
-            0 => CrdtTypes::GCounter,
-            1 => CrdtTypes::PnCounter,
+            0 => CrdtTypes::Counter,
+            1 => CrdtTypes::LSeq,
+            2 => CrdtTypes::Set,
             _ => panic!(),
         };
         let send_reliability = matches.get_one::<f64>("send_reliability").unwrap().clone();

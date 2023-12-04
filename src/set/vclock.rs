@@ -1,4 +1,7 @@
-enum VClockCompareResult {
+use std::collections::HashMap;
+use std::cmp;
+
+pub enum VClockCompareResult {
   EQUAL,
   LESS_THAN,
   GREATER_THAN,
@@ -11,7 +14,7 @@ pub struct VClock {
 }
 
 impl VClock {
-  fn new(total_replicas: i32) -> Self {
+  pub fn new(total_replicas: i32) -> Self {
       let mut tmp = Self {
           clock: HashMap::new(),
       };
@@ -21,7 +24,7 @@ impl VClock {
       tmp
   }
 
-  fn new_with_clock(m: HashMap<String, i32>) -> Self {
+  pub fn new_with_clock(m: HashMap<String, i32>) -> Self {
       Self { clock: m }
   }
 
@@ -39,18 +42,18 @@ impl VClock {
       }
 
       if less & more {
-          return crate::replica::VClockCompareResult::CONCURRENT;
+          return crate::set::vclock::VClockCompareResult::CONCURRENT;
       }
 
       if less {
-          return crate::replica::VClockCompareResult::LESS_THAN;
+          return crate::set::vclock::VClockCompareResult::LESS_THAN;
       }
 
       if more {
-          return crate::replica::VClockCompareResult::GREATER_THAN;
+          return crate::set::vclock::VClockCompareResult::GREATER_THAN;
       }
 
-      crate::replica::VClockCompareResult::EQUAL
+      crate::set::vclock::VClockCompareResult::EQUAL
   }
 
   pub fn merge(clk1: &VClock, clk2: &VClock) -> VClock {

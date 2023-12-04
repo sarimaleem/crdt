@@ -1,3 +1,12 @@
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
+use std::sync::atomic::Ordering;
+use std::sync::{mpsc::Receiver, atomic::AtomicBool};
+use crate::network::Network;
+use crate::set::vclock::VClock;
+use crate::message::Message;
+use crate::message::{SetGetRequest, SetInsertRequest, SetRemoveRequest, SetMerge};
+use crate::traits::Runnable;
 
 pub struct SetsReplica {
   id: String,
@@ -38,7 +47,7 @@ impl SetsReplica {
           match self.adds.get(&*item) {
               Some(add) => {
                   match add.compare(clk) {
-                      crate::replica::VClockCompareResult::LESS_THAN => {
+                    crate::set::vclock::VClockCompareResult::LESS_THAN => {
                           result.insert(item.clone());
                       }
                       _ => {}
@@ -145,7 +154,7 @@ impl SetsReplica {
           match acc.entry(k.clone()) {
               std::collections::hash_map::Entry::Occupied(entry) => {
                   match entry.get().compare(vr) {
-                      crate::replica::VClockCompareResult::LESS_THAN => {
+                      crate::set::vclock::VClockCompareResult::LESS_THAN => {
                           // Remove the entry if it meets the condition
                           entry.remove_entry();
                       }
@@ -172,7 +181,7 @@ impl SetsReplica {
       let rem = addk.iter().fold(removek, |mut acc, (k, va)| {
           match acc.entry(k.clone()) {
               std::collections::hash_map::Entry::Occupied(entry) => {
-                  if let crate::replica::VClockCompareResult::LESS_THAN = va.compare(entry.get())
+                  if let crate::set::vclock::VClockCompareResult::LESS_THAN = va.compare(entry.get())
                   {
                       // Remove the entry if it meets the condition
                       entry.remove();

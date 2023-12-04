@@ -1,3 +1,3 @@
 pub mod client;
 pub mod replica;
-pub mod vclock;
+pub mod vptr;
