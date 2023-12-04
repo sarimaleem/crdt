@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
+use crate::set::vclock::VClock;
 use crate::lseq::vptr::VPtr;
 
 // Counter Messages
@@ -63,11 +64,47 @@ pub struct LSeqReadResponse {
 }
 
 #[derive(Clone)]
+pub struct SetGetRequest {
+    pub sender_id: String,
+}
+
+#[derive(Clone)]
+pub struct SetGetResult {
+    pub sender_id: String,
+    pub result: HashSet<String>,
+}
+
+#[derive(Clone)]
+pub struct SetInsertRequest {
+    pub sender_id: String,
+    pub request: String,
+}
+
+#[derive(Clone)]
+pub struct SetRemoveRequest {
+    pub sender_id: String,
+    pub request: String,
+}
+
+#[derive(Clone)]
+pub struct SetMerge {
+    pub sender_id: String,
+    pub add_map: HashMap<String, VClock>,
+    pub remove_map: HashMap<String, VClock>,
+}
+
+
+#[derive(Clone)]
 pub enum Message {
     CounterReadRequest(CounterReadRequest),
     CounterIncrementRequest(CounterIncrementRequest),
     CounterReadResult(CounterReadResult),
     CounterMerge(CounterMerge),
+    SetGetRequest(SetGetRequest),
+    SetGetResult(SetGetResult),
+    SetInsertRequest(SetInsertRequest),
+    SetRemoveRequest(SetRemoveRequest),
+    SetMerge(SetMerge),
     LSeqReadRequest(LSeqReadRequest),
     LSeqInsertRequest(LSeqInsertRequest),
     LSeqInsertOperation(LSeqInsertOperation),
@@ -96,6 +133,7 @@ impl Message {
         Message::CounterMerge(CounterMerge {
             sender_id,
             counters,
+        
         })
     }
 
@@ -129,5 +167,13 @@ impl Message {
 
     pub fn create_lseq_remove_operation(sender_id: String, at: VPtr) -> Message {
         Message::LSeqRemoveOperation(LSeqRemoveOperation { sender_id, at })
+    }
+
+    pub fn create_set_get_result(sender_id: String,  result: HashSet<String>) -> Message{
+        Message::SetGetResult(SetGetResult {sender_id, result})
+    }
+
+    pub fn create_set_merge(sender_id: String, adds: HashMap<String, VClock>, removes: HashMap<String, VClock>) -> Message {
+        Message::SetMerge(SetMerge { sender_id, add_map:adds, remove_map: removes})
     }
 }
