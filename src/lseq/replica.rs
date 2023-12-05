@@ -56,6 +56,10 @@ impl LSeqReplica {
     }
 
     fn handle_array_insert_request(&mut self, req: LSeqInsertRequest) {
+        if req.index > self.vertices.len() {
+            return;
+        }
+
         let left = if req.index == 0 {
             Vec::new()
         } else {
@@ -73,6 +77,9 @@ impl LSeqReplica {
     }
 
     fn handle_array_remove_request(&mut self, req: LSeqRemoveRequest) {
+        if req.index >= self.vertices.len() {
+            return;
+        }
         let ptr = self.vertices[req.index].ptr.clone();
         let removed_message = Message::create_lseq_remove_operation(self.id.clone(), ptr);
         self.network.broadcast_replicas(removed_message);
