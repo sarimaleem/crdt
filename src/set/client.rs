@@ -16,6 +16,7 @@ pub struct SetsClient {
     running: Arc<AtomicBool>,
     barrier: Arc<Barrier>,
     workload_source: Vec<String>,
+    output: bool,
 }
 
 impl SetsClient {
@@ -28,6 +29,7 @@ impl SetsClient {
         running: Arc<AtomicBool>,
         barrier: Arc<Barrier>,
         workload_source: Vec<String>,
+        output: bool
     ) -> Self {
         Self {
             id,
@@ -38,11 +40,14 @@ impl SetsClient {
             running,
             barrier,
             workload_source,
+            output
         }
     }
 
     fn handle_sets_get_result(&mut self, r: SetGetResult) {
-        println!("{}: {:?}", self.id, r.result);
+        if self.output {
+            println!("{}: {:?}", self.id, r.result);
+        }
     }
 }
 

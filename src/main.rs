@@ -103,6 +103,7 @@ fn create_counter_nodes(
                     client_receivers.remove(0),
                     running.clone(),
                     barrier.clone(),
+                    args.check.clone(),
                 );
                 nodes.push(Box::new(client));
             }
@@ -115,6 +116,7 @@ fn create_counter_nodes(
                     client_receivers.remove(0),
                     running.clone(),
                     barrier.clone(),
+                    args.check.clone(),
                 );
                 nodes.push(Box::new(client));
             }
@@ -140,7 +142,8 @@ fn create_counter_nodes(
                     client_receivers.remove(0),
                     running.clone(),
                     barrier.clone(),
-                    workload
+                    workload,
+                    args.check.clone(),
                 );
                 nodes.push(Box::new(client));
             }

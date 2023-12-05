@@ -12,7 +12,7 @@ pub struct ArgOptions {
     pub num_requests: usize,
     pub crdt_type: CrdtTypes,
     pub send_reliability: f64,
-    pub verbosity: i32,
+    pub check: bool,
 }
 
 impl ArgOptions {
@@ -49,10 +49,10 @@ impl ArgOptions {
                     .default_value("1.0"),
             )
             .arg(
-                arg!(-v[verbosity])
+                arg!(-k[check])
                     .required(false)
-                    .value_parser(value_parser!(i32))
-                    .default_value("0"),
+                    .value_parser(value_parser!(bool))
+                    .default_value("false"),
             )
             .get_matches();
 
@@ -66,7 +66,7 @@ impl ArgOptions {
             _ => panic!(),
         };
         let send_reliability = matches.get_one::<f64>("send_reliability").unwrap().clone();
-        let verbosity = matches.get_one::<i32>("verbosity").unwrap().clone();
+        let check = matches.get_one::<bool>("check").unwrap().clone();
 
         ArgOptions {
             num_clients,
@@ -74,7 +74,7 @@ impl ArgOptions {
             num_requests,
             crdt_type,
             send_reliability,
-            verbosity,
+            check,
         }
     }
 }

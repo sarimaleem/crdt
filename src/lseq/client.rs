@@ -13,6 +13,7 @@ pub struct LSeqClient {
     rx: Receiver<Message>,
     running: Arc<AtomicBool>,
     barrier: Arc<Barrier>,
+    output: bool,
 }
 
 impl LSeqClient {
@@ -24,6 +25,7 @@ impl LSeqClient {
         rx: Receiver<Message>,
         running: Arc<AtomicBool>,
         barrier: Arc<Barrier>,
+        output: bool,
     ) -> Self {
         Self {
             id,
@@ -33,6 +35,7 @@ impl LSeqClient {
             rx,
             running,
             barrier,
+            output,
         }
     }
 }
@@ -91,7 +94,11 @@ impl Runnable for LSeqClient {
             .send_message(&self.assigned_replica_id, read_req);
         let response = self.rx.recv().unwrap();
         match response {
-            Message::LSeqReadResponse(m) => println!("{}", m.result),
+            Message::LSeqReadResponse(m) => {
+                if self.output {
+                    println!("{}", m.result)
+                }
+            },
             _ => panic!(),
         };
 

@@ -3,15 +3,11 @@ use crate::network::Network;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::Receiver;
 use std::sync::Barrier;
-use std::sync::{
-    atomic::AtomicBool,
-    Arc,
-};
+use std::sync::{atomic::AtomicBool, Arc};
 
 /**
 TODO: create a enum to include all the clients
  */
-
 use crate::{message::Message, traits::Runnable};
 
 pub struct CounterClient {
@@ -22,6 +18,7 @@ pub struct CounterClient {
     rx: Receiver<Message>,
     running: Arc<AtomicBool>,
     barrier: Arc<Barrier>,
+    output: bool,
 }
 
 impl CounterClient {
@@ -33,6 +30,7 @@ impl CounterClient {
         rx: Receiver<Message>,
         running: Arc<AtomicBool>,
         barrier: Arc<Barrier>,
+        output: bool,
     ) -> Self {
         Self {
             id,
@@ -42,11 +40,14 @@ impl CounterClient {
             rx,
             running,
             barrier,
+            output,
         }
     }
 
     fn handle_counter_read_result(&mut self, r: CounterReadResult) {
-        println!("{}: {}", self.id, r.total_counter);
+        if self.output {
+            println!("{}: {}", self.id, r.total_counter);
+        }
     }
 }
 
@@ -81,4 +82,3 @@ impl Runnable for CounterClient {
             .swap(false, std::sync::atomic::Ordering::SeqCst);
     }
 }
-
