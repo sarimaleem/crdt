@@ -9,7 +9,7 @@ mod traits;
 use crate::traits::Runnable;
 use argoptions::ArgOptions;
 use counter::client::CounterClient;
-use counter::replica::{self, CounterReplica};
+use counter::replica::CounterReplica;
 use lseq::client::LSeqClient;
 use lseq::replica::LSeqReplica;
 

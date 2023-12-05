@@ -44,7 +44,7 @@ impl SetsReplica {
             match self.removes.get(item) {
                 Some(clk) => {
                     match add.compare(clk) {
-                        crate::set::vclock::VClockCompareResult::LESS_THAN => {
+                        crate::set::vclock::VClockCompareResult::LESS => {
                             result.insert(item.clone());
                         }
                         _ => {
@@ -67,11 +67,11 @@ impl SetsReplica {
     fn handle_set_insert(&mut self, message: SetInsertRequest) {
         let string_to_add = message.request;
         let add_clk = self.adds.get(&string_to_add);
-        let mut remove_clk = self.removes.get(&string_to_add);
+        let remove_clk = self.removes.get(&string_to_add);
 
         match (add_clk, remove_clk) {
             (Some(v), _) | (_, Some(v)) => {
-                let mut clk = VClock::increment(&v, &self.id);
+                let clk = VClock::increment(&v, &self.id);
                 self.adds.insert(string_to_add.clone(), clk);
                 self.removes.remove(&string_to_add);
             }
@@ -92,11 +92,11 @@ impl SetsReplica {
     fn handle_set_remove(&mut self, message: SetRemoveRequest) {
         let string_to_add = message.request;
         let add_clk = self.adds.get(&string_to_add);
-        let mut remove_clk = self.removes.get(&string_to_add);
+        let remove_clk = self.removes.get(&string_to_add);
 
         match (add_clk, remove_clk) {
             (Some(v), _) | (_, Some(v)) => {
-                let mut clk = VClock::increment(&v, &self.id);
+                let clk = VClock::increment(&v, &self.id);
                 self.adds.remove(&string_to_add);
                 self.removes
                     .insert(string_to_add.clone(), VClock::increment(&clk, &self.id));
@@ -142,7 +142,7 @@ impl SetsReplica {
             match acc.entry(k.clone()) {
                 std::collections::hash_map::Entry::Occupied(entry) => {
                     match entry.get().compare(vr) {
-                        crate::set::vclock::VClockCompareResult::LESS_THAN => {
+                        crate::set::vclock::VClockCompareResult::LESS => {
                             // Remove the entry if it meets the condition
                             entry.remove_entry();
                         }
@@ -157,7 +157,7 @@ impl SetsReplica {
         let rem = addk.iter().fold(removek, |mut acc, (k, va)| {
             match acc.entry(k.clone()) {
                 std::collections::hash_map::Entry::Occupied(entry) => {
-                    if let crate::set::vclock::VClockCompareResult::LESS_THAN =
+                    if let crate::set::vclock::VClockCompareResult::LESS =
                         va.compare(entry.get())
                     {
                         // Remove the entry if it meets the condition

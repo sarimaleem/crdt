@@ -3,8 +3,8 @@ use std::cmp;
 
 pub enum VClockCompareResult {
   EQUAL,
-  LESS_THAN,
-  GREATER_THAN,
+  LESS,
+  GREATER,
   CONCURRENT,
 }
 
@@ -46,11 +46,11 @@ impl VClock {
       }
 
       if less {
-          return crate::set::vclock::VClockCompareResult::LESS_THAN;
+          return crate::set::vclock::VClockCompareResult::LESS;
       }
 
       if more {
-          return crate::set::vclock::VClockCompareResult::GREATER_THAN;
+          return crate::set::vclock::VClockCompareResult::GREATER;
       }
 
       crate::set::vclock::VClockCompareResult::EQUAL

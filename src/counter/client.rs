@@ -1,6 +1,5 @@
-use crate::message::{CounterReadResult, SetGetResult};
+use crate::message::CounterReadResult;
 use crate::network::Network;
-use std::sync::atomic::Ordering;
 use std::sync::mpsc::Receiver;
 use std::sync::Barrier;
 use std::sync::{atomic::AtomicBool, Arc};

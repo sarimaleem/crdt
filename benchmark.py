@@ -4,6 +4,8 @@ import time
 import seaborn as sns
 import pandas as pd
 
+sns.set_palette("deep")
+
 def command_builder(num_clients, num_replicas, num_requests_per_client, CRDT_type):
   return ["./target/release/crdt", "-c", str(num_clients), "-r", str(num_replicas), "-n", str(num_requests_per_client), "-t", str(CRDT_type)]
 
@@ -15,9 +17,9 @@ def run(num_clients, num_replicas, num_requests_per_client, CRDT_type):
   
   return duration
 
-CLIENT_COUNTS = [10, 50, 100]
-REPLICA_COUNTS = [10, 50, 100]
-REQUEST_PER_CLIENT = [50, 100, 500]
+CLIENT_COUNTS = [1, 2, 10, 20]
+REPLICA_COUNTS = [1, 2, 10, 20]
+REQUEST_PER_CLIENT = [10, 50, 100]
 
 
 GROUPS = [] 
@@ -36,7 +38,7 @@ def avg(nums):
   return sum / len(nums)
 
 
-def run_test(crdt_type, num_rums):
+def run_test(crdt_type, num_rums, title, filename):
   total_times = []
   for i in range(len(CLIENT_COUNTS)):
     n_clients, n_replicas = CLIENT_COUNTS[i], REPLICA_COUNTS[i]
@@ -50,19 +52,21 @@ def run_test(crdt_type, num_rums):
   print(total_times)
   sns.catplot(x=GROUPS, y=total_times, hue=CATEGORIES, errorbar=None, kind="bar")
   plt.yscale("log")
-  sns.set_palette(sns.color_palette("pastel"))
-  plt.show()
+  plt.ylabel("time (s)")
+  plt.xlabel("number of nodes")
+  plt.title(title)
+  plt.savefig(filename, bbox_inches='tight', dpi=300)
   
       
     
 def main():
   
-  print("G-counter")
-  run_test(0, 1)
-  print("l_seq")
-  run_test(1, 1)
+  print("RUNNING G COUNTER")
+  run_test(0, 1, "G-Counter Benchmark", "./graphs/gcounter.png")
+  print("RUNNING LSEQ")
+  run_test(1, 1, "LSeq Benchmark", "./graphs/lseq.png")
   print("OR-sets")
-  run_test(2, 1)
+  run_test(2, 1, "OR-Set Benchmark", "./graphs/orset.png")
   
 if __name__ == "__main__":
   main()
